@@ -1,0 +1,3 @@
+{"type":"user","agentId":"a4444444444444444","timestamp":"2026-11-26T01:00:00.000Z","cwd":"WORKTREE","sessionId":"SESSION","message":{"role":"user","content":"[Workflow harness — user request] relay\n\nDo the task explore:map"}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}
+{"type":"assistant","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"Finished explore:map"}]}}

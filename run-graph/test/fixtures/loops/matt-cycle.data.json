@@ -1,0 +1,44 @@
+{
+ "title": "Cycle",
+ "slug": "cycle",
+ "generated": "2026-11-26",
+ "summary": "s",
+ "progress": {
+  "state": "blocked",
+  "updated": "2026-11-26T10:00:00+09:00"
+ },
+ "tickets": [
+  {
+   "id": "A",
+   "title": "a",
+   "status": "pending",
+   "blockedBy": [
+    "C"
+   ]
+  },
+  {
+   "id": "B",
+   "title": "b",
+   "status": "pending",
+   "blockedBy": [
+    "A"
+   ]
+  },
+  {
+   "id": "C",
+   "title": "c",
+   "status": "pending",
+   "blockedBy": [
+    "B"
+   ]
+  },
+  {
+   "id": "D",
+   "title": "d",
+   "status": "pending",
+   "blockedBy": [
+    "Z"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+{"title":"Speed up parser","slug":"autocode","generated":"2026-11-26","summary":"s",
+ "progress":{"state":"running","updated":"2026-11-26T11:00:00Z","startedAt":"2026-11-26T09:00:00Z","current":"H002 running"},
+ "run":{"branch":"autocode/parser","metric":{"name":"ms","direction":"lower","baseline":100,"best":80},"budget":{"done":2,"max":10},"strategist":{"tier":"deep"},"terminatedReason":null},
+ "hypotheses":[
+  {"id":"H001","seq":1,"claim":"cache tokens","status":"keep","delta":-20.0,"metric":80,"commit":"abc1234","startedAt":"2026-11-26T09:10:00Z","measuredAt":"2026-11-26T09:40:00Z","worker":{"model":"sonnet","effort":"medium","worktree":".autocode/worktrees/H001"},"touches":["src/a.ts"]},
+  {"id":"H002","seq":2,"claim":"skip whitespace","status":"running","startedAt":"2026-11-26T10:00:00Z","worker":{"worktree":".autocode/worktrees/H002"},"dependsOn":["H001"]},
+  {"id":"H003","claim":"later idea","status":"pending","priority":1}]}

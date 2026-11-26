@@ -1,0 +1,66 @@
+{
+ "runId": "wf_aaaaaaaa-001",
+ "workflowName": "build-feature",
+ "status": "completed",
+ "startTime": 1794973622436,
+ "durationMs": 600000,
+ "totalTokens": 120000,
+ "totalToolCalls": 40,
+ "summary": "Build the feature",
+ "agentCount": 3,
+ "phases": [
+  {
+   "title": "Build"
+  },
+  {
+   "title": "Verify"
+  }
+ ],
+ "workflowProgress": [
+  {
+   "type": "workflow_phase",
+   "index": 1,
+   "title": "Build"
+  },
+  {
+   "type": "workflow_agent",
+   "index": 0,
+   "agentId": "a1111111111111111",
+   "label": "impl:model",
+   "phaseTitle": "Build",
+   "state": "completed",
+   "startedAt": 1794973622436,
+   "durationMs": 200000,
+   "tokens": 50000,
+   "toolCalls": 20,
+   "model": "claude-opus-5-5",
+   "promptPreview": "Write the model",
+   "resultPreview": "Model written"
+  },
+  {
+   "type": "workflow_agent",
+   "index": 1,
+   "agentId": "a2222222222222222",
+   "label": "impl:view",
+   "phaseTitle": "Build",
+   "state": "completed",
+   "startedAt": 1794973632436,
+   "durationMs": 250000,
+   "tokens": 40000,
+   "toolCalls": 15,
+   "attempt": 2
+  },
+  {
+   "type": "workflow_agent",
+   "index": 2,
+   "agentId": "a3333333333333333",
+   "label": "review",
+   "phaseTitle": "Verify",
+   "state": "failed",
+   "startedAt": 1794973900000,
+   "durationMs": 100000,
+   "tokens": 30000,
+   "toolCalls": 5
+  }
+ ]
+}
