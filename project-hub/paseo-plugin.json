@@ -1,0 +1,17 @@
+{
+  "id": "project-hub",
+  "name": "Project hub",
+  "media": [],
+  "requirements": {
+    "paseo": ">=0.17.4"
+  },
+  "build": [
+    [
+      "npm",
+      "ci",
+      "--omit=dev",
+      "--no-audit",
+      "--no-fund"
+    ]
+  ]
+}
