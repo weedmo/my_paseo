@@ -1,0 +1,2 @@
+{"type":"user","agentId":"a5555555555555555","timestamp":"2026-11-26T01:00:00.000Z","cwd":"WORKTREE","sessionId":"SESSION","message":{"role":"user","content":"[Workflow harness — user request] relay\n\nDo the task write:draft"}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}

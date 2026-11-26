@@ -1,0 +1,9 @@
+{
+  "id": "run-graph",
+  "name": "Run Graph",
+  "description": "matt-design specs, matt-auto and autocode runs, gates and the Claude workflow runs and subagents they started, as one lane graph per repository",
+  "media": [],
+  "requirements": {
+    "paseo": ">=0.17.4"
+  }
+}

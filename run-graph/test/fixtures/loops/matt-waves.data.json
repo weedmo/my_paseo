@@ -1,0 +1,622 @@
+{
+  "title": "tinycalc 확장 — 거듭제곱 · 포맷터 · --precision",
+  "slug": "tinycalc-power-format",
+  "generated": "2026-09-07",
+  "summary": "tinycalc 계산기에 세 가지를 더합니다. 첫째, 거듭제곱 연산자 ^ 를 넣되 2 ^ 3 ^ 2 가 512가 되도록 오른쪽부터 묶고 곱셈보다 먼저 계산합니다. 둘째, 숫자를 사람이 읽기 좋은 문자열로 바꾸는 새 모듈 format.py 를 만듭니다. 셋째, 명령줄에서 --precision N 으로 소수 자릿수를 지정할 수 있게 합니다. 아래 결정들은 델리게이트(matt-deep)가 인터뷰 2라운드에서 정한 것이고, 지금은 사용자 승인을 기다리는 상태입니다.",
+  "stages": [
+    {
+      "id": "precondition",
+      "name": "사전 준비",
+      "skill": "setup-matt-pocock-skills",
+      "status": "done",
+      "note": "기준 커밋 013b2c3",
+      "decisions": [
+        {
+          "id": "precondition-1",
+          "question": "이 레포의 티켓은 어디에 발행하나?",
+          "before": "없음 — 이슈 트래커가 설정된 적 없음",
+          "change": "new",
+          "decision": "로컬 마크다운. 티켓은 .scratch/<기능>/issues/NN-slug.md 파일로 쓴다.",
+          "rationale": "루프 테스트베드이고 이번 실행은 PR도 열지 않으므로 GitHub Issues를 건드리지 않는 편이 깔끔하다.",
+          "escalated": true
+        },
+        {
+          "id": "precondition-2",
+          "question": "에이전트 규칙 파일을 CLAUDE.md로 할까 AGENTS.md로 할까?",
+          "before": "없음 — 둘 다 존재하지 않았음",
+          "change": "new",
+          "decision": "CLAUDE.md를 새로 만들고 '## Agent skills' 블록을 넣는다.",
+          "rationale": "이 루프를 Claude Code에서만 돌리므로 세션이 자동으로 읽는 파일 하나면 충분하다.",
+          "escalated": true
+        }
+      ]
+    },
+    {
+      "id": "interview",
+      "name": "인터뷰",
+      "skill": "grill-with-docs → matt-deep",
+      "status": "done",
+      "note": "2라운드, 프론티어 소진",
+      "decisions": [
+        {
+          "id": "interview-1",
+          "question": "계산기가 ^ 글자를 연산자로 인식하게 하려면 토크나이저를 어떻게 고치나?",
+          "before": "토큰 정규식이 연산자로 - + * / ( ) 여섯 글자만 인식한다",
+          "change": "new",
+          "decision": "정규식의 문자 목록에 ^ 를 한 글자 추가한다.",
+          "rationale": "이미 한 글자 연산자를 한 묶음으로 처리하고 있어서, 새 분기를 만들면 얻는 것 없이 복잡해진다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-2",
+          "question": "^ 가 곱셈보다 먼저 계산되고 오른쪽부터 묶이게 하려면 문법을 어떻게 짜나?",
+          "before": "덧셈 → 곱셈 → 단항/괄호 세 단계로만 파싱한다",
+          "change": "new",
+          "decision": "곱셈과 단항/괄호 사이에 거듭제곱 단계를 하나 새로 넣고, 그 단계가 오른쪽 피연산자에서 자기 자신을 다시 부르게 한다.",
+          "rationale": "오른쪽 재귀는 우결합을 만드는 가장 표준적이고 작은 방법이다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-3",
+          "question": "-2 ^ 2 는 -4 인가 4 인가?",
+          "before": "단항 마이너스를 가장 안쪽 단계에서 처리한다 — 그대로 두면 (-2)^2 = 4 가 된다",
+          "change": "redirect",
+          "decision": "Python·수학 관례를 따라 -4.0 으로 한다. 즉 -(2^2). 단항 마이너스 처리를 한 단계 위(거듭제곱 단계)로 올린다.",
+          "rationale": "계산기가 파이썬이나 종이 위 수식과 다른 답을 내면 그 자체가 버그로 신고된다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-4",
+          "question": "거듭제곱을 파이썬의 ** 로 계산할까, math.pow 로 계산할까?",
+          "before": "없음 — 거듭제곱이 없었음",
+          "change": "new",
+          "decision": "math.pow 를 쓴다.",
+          "rationale": "** 는 (-8) ^ 0.5 에서 복소수를 돌려주고, 그 복소수가 포맷터까지 흘러가면 명령줄이 오류 코드 대신 스택 트레이스를 뱉는다. math.pow 는 그 경우 깔끔하게 오류를 낸다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-5",
+          "question": "단항 마이너스를 위로 옮기면 원래 자리에 남는 코드는 어떻게 하나?",
+          "before": "가장 안쪽 단계가 앞의 - 를 직접 처리한다",
+          "change": "redirect",
+          "decision": "옮긴 뒤 원래 자리의 분기는 지운다.",
+          "rationale": "옮긴 뒤에는 그 코드에 도달할 경로가 없고, 같은 규칙이 두 군데 있으면 나중에 한쪽만 고쳐져 파서가 어긋난다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-6",
+          "question": "자릿수를 지정하지 않았을 때 fmt 는 3.0 을 어떻게 찍나?",
+          "before": "없음 — 포맷터가 없었음",
+          "change": "new",
+          "decision": "값이 정수면 \"3\", 아니면 \"3.5\" 처럼 찍는다. 정수 판정은 float 의 is_integer() 로 한다.",
+          "rationale": "int() 로 판정하면 무한대·NaN에서 예외가 터지는데, is_integer() 는 그 둘을 False로 넘겨 \"inf\"/\"nan\" 문자열이 자연히 나온다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-7",
+          "question": "자릿수를 지정했을 때 fmt(3.0, 2) 는 \"3.0\" 인가 \"3.00\" 인가?",
+          "before": "없음 — 포맷터가 없었음",
+          "change": "new",
+          "decision": "\"3.00\". 지정한 자릿수만큼 소수점 아래를 항상 채운다. 음수 자릿수는 오류로 거절한다.",
+          "rationale": "--precision 같은 옵션은 관례적으로 고정 소수 자릿수를 뜻하고, 음수를 명시적으로 거절해야 알아보기 힘든 포맷 오류가 새어나가지 않는다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-8",
+          "question": "--precision 을 붙이면서 명령줄 인자 처리를 argparse 로 갈아탈까?",
+          "before": "직접 짠 인자 처리 — 위치 인자 하나만 받는다",
+          "change": "keep",
+          "decision": "argparse로 바꾸지 않는다. 직접 짠 처리에 --precision N 과 --precision=N 만 더한다.",
+          "rationale": "argparse는 공백 없는 \"-3+5\" 를 옵션으로 오해해 지금 되는 입력을 깨뜨린다 — 실제로 확인했다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-9",
+          "question": "--precision 에 이상한 값이 오면 종료 코드는?",
+          "before": "사용법 오류는 2, 계산 오류는 1로 끝난다",
+          "change": "keep",
+          "decision": "기존 규칙을 그대로 적용한다. 잘못된 --precision 은 계산을 시작하기 전에 걸러 2로 끝낸다.",
+          "rationale": "잘못된 옵션은 잘못된 수식이 아니라 잘못된 사용법이다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-10",
+          "question": "fmt 를 패키지 바깥에서 바로 쓸 수 있게 열어둘까?",
+          "before": "패키지가 evaluate 와 tokenize 만 밖으로 내보낸다",
+          "change": "new",
+          "decision": "fmt 도 함께 내보낸다.",
+          "rationale": "명령줄만 쓰라고 만든 내부 도우미가 아니라 패키지의 두 번째 공개 기능이다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-11",
+          "question": "format.py 테스트를 어디에 두나?",
+          "before": "테스트가 test_core.py 한 파일뿐이다",
+          "change": "new",
+          "decision": "tinycalc/tests/test_format.py 를 새로 만든다.",
+          "rationale": "테스트 탐색이 자동으로 잡아가고, 두 티켓이 서로 다른 파일만 건드리게 되어 병렬로 돌려도 충돌하지 않는다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-12",
+          "question": "이번 작업 중 문서로 남길 결정이 있나?",
+          "before": "없음 — docs/adr/ 도 CONTEXT.md 도 없다",
+          "change": "new",
+          "decision": "-2 ^ 2 를 -4 로 정한 것만 ADR 한 건으로 남긴다. 용어집(CONTEXT.md)은 만들지 않는다.",
+          "rationale": "나중에 읽는 사람이 \"왜 이렇게 했지\" 하고 멈출 지점은 그 하나뿐이고, 이 레포엔 아직 정리할 도메인 용어가 없다.",
+          "escalated": false
+        },
+        {
+          "id": "interview-13",
+          "question": "README 한 줄을 누가 쓰나? 세 티켓이 같은 파일을 건드리면 충돌한다.",
+          "before": "README는 두 줄짜리 — 테스트 명령과 사용 예 하나",
+          "change": "new",
+          "decision": "^ 티켓이 자기 사용 예를, --precision 티켓이 자기 사용 예를 각각 쓴다. format.py 는 README를 건드리지 않는다.",
+          "rationale": "두 티켓은 같은 웨이브에 있지 않아서 — --precision 은 format.py 를 기다린다 — 동시에 README를 열 일이 없다.",
+          "escalated": false
+        }
+      ]
+    },
+    {
+      "id": "size",
+      "name": "규모 분기",
+      "skill": "—",
+      "status": "done",
+      "note": "",
+      "decisions": [
+        {
+          "id": "size-1",
+          "question": "이 작업을 바로 구현할까, 스펙·티켓까지 가는 전체 흐름으로 갈까?",
+          "before": "직전 실행은 한 세션짜리로 보고 바로 구현했다",
+          "change": "redirect",
+          "decision": "전체 흐름으로 간다 — 스펙을 쓰고 티켓 3개로 쪼갠 뒤 실행 계획 게이트를 거친다.",
+          "rationale": "사용자가 티켓 여러 개짜리 작업이라고 지정했다.",
+          "escalated": true
+        }
+      ]
+    },
+    {
+      "id": "spec",
+      "name": "스펙",
+      "skill": "to-spec",
+      "status": "done",
+      "note": ".scratch/tinycalc-power-format/spec.md 에 발행",
+      "decisions": [
+        {
+          "id": "spec-1",
+          "question": "새 포맷터 fmt 를 자기 자리에서 직접 테스트할까, 명령줄을 통해서만 테스트할까?",
+          "before": "테스트 지점이 evaluate() 와 명령줄 두 곳뿐이었다",
+          "change": "new",
+          "decision": "fmt 자체를 테스트 지점으로 하나 더 둔다.",
+          "rationale": "정수/소수, 자릿수 없음/0/2, 무한대, NaN, 음수 자릿수의 조합은 함수에서 확인하면 싸고 명령줄을 매번 새 프로세스로 띄우면 느리고 지저분하다.",
+          "escalated": false
+        },
+        {
+          "id": "spec-2",
+          "question": "^ 연산자를 명령줄 쪽에서도 테스트해야 하나?",
+          "before": "없음 — ^ 가 없었음",
+          "change": "new",
+          "decision": "아니다. evaluate() 지점에서만 테스트한다.",
+          "rationale": "명령줄은 ^ 에 대해 새로 하는 일이 없어서, 거기서 또 테스트하면 파서를 두 번 확인하는 것뿐이다.",
+          "escalated": false
+        },
+        {
+          "id": "spec-3",
+          "question": "옵션 없이 실행했을 때 명령줄 출력이 3.0 에서 3 으로 바뀌어도 되나?",
+          "before": "python3 -m tinycalc \"1 + 2\" 는 3.0 을 찍고, 기존 테스트가 그 \"3.0\" 을 검사한다",
+          "change": "redirect",
+          "decision": "바꾼다. 명령줄은 옵션이 있든 없든 항상 포맷터를 거쳐 3 을 찍는다. 기존 테스트와 README의 출력값도 함께 고친다.",
+          "rationale": "델리게이트가 결정을 거부하고 올린 건이라 사용자가 직접 골랐다 — 출력 경로가 둘로 갈리지 않고 포맷터의 기본 모드가 실제로 쓰인다.",
+          "escalated": true
+        },
+        {
+          "id": "spec-4",
+          "question": "이번 스펙에서 명시적으로 빼는 것은?",
+          "before": "없음 — 범위를 적어둔 적이 없다",
+          "change": "new",
+          "decision": "^ 외의 연산자, 잘못된 수식의 오류 표현 방식 변경, 대화형 REPL, 용어집, PR — 모두 범위 밖.",
+          "rationale": "티켓이 커지지 않도록 경계를 미리 못 박아 둔다.",
+          "escalated": false
+        }
+      ]
+    },
+    {
+      "id": "tickets",
+      "name": "티켓",
+      "skill": "to-tickets",
+      "status": "done",
+      "note": "3개 발행 — .scratch/tinycalc-power-format/issues/",
+      "decisions": [
+        {
+          "id": "tickets-1",
+          "question": "세 기능을 티켓 3개로 나누는 게 적당한 크기인가?",
+          "before": "없음 — 티켓으로 쪼갠 적이 없다",
+          "change": "new",
+          "decision": "3개가 맞다. 각각 전체 테스트로 혼자 검증되고 한 번의 작업 맥락에 들어간다.",
+          "rationale": "ADR 작성이나 패키지 재수출을 따로 떼면 티켓이라 부르기 민망한 크기가 된다.",
+          "escalated": false
+        },
+        {
+          "id": "tickets-2",
+          "question": "티켓 사이의 선후 관계는?",
+          "before": "없음",
+          "change": "new",
+          "decision": "03(명령줄)만 02(포맷터)를 기다린다. 01(거듭제곱)은 아무것도 기다리지 않는다.",
+          "rationale": "03은 fmt 가 있어야 불러 쓸 수 있고, 01은 파서와 자기 테스트만 건드린다.",
+          "escalated": false
+        },
+        {
+          "id": "tickets-3",
+          "question": "구현 전에 코드를 미리 다듬어 둘 티켓이 필요한가?",
+          "before": "파서가 40줄, 세 단계 구조",
+          "change": "keep",
+          "decision": "필요 없다. 지금 구조가 새 단계를 끼워 넣기에 이미 맞는 모양이다.",
+          "rationale": "준비 티켓을 만들면 01을 억지로 둘로 쪼갠 것에 지나지 않는다.",
+          "escalated": false
+        },
+        {
+          "id": "tickets-4",
+          "question": "README 한 줄과 ADR은 누가 쓰나?",
+          "before": "README는 두 줄, ADR 폴더는 없음",
+          "change": "new",
+          "decision": "ADR은 01이 쓴다. README의 출력값은 전부 03이 정리하고, 01은 출력값 없는 한 줄만 쓴다.",
+          "rationale": "03이 출력 형식을 바꾸므로, 01이 512.0 같은 값을 적어두면 03이 그걸 다시 고쳐야 한다.",
+          "escalated": false
+        }
+      ]
+    },
+    {
+      "id": "implement",
+      "name": "구현",
+      "skill": "implement",
+      "status": "done",
+      "note": "티켓 3/3 완료, 전체 27개 테스트 통과",
+      "decisions": []
+    },
+    {
+      "id": "ship",
+      "name": "PR",
+      "skill": "pr-babysit",
+      "status": "skipped",
+      "note": "PR 없음 — ship 플래그 미지정",
+      "decisions": []
+    }
+  ],
+  "progress": {
+    "state": "done",
+    "updated": "2026-09-07T00:55:58+09:00",
+    "startedAt": "2026-09-07T00:31:55+09:00",
+    "current": "완료 — 티켓 3개 구현, 리뷰 2패스 반영, 최종 33개 테스트 통과",
+    "note": "PR은 열지 않았습니다(ship 플래그 없음). 변경은 main 위 커밋 6개로 남아 있습니다."
+  },
+  "tickets": [
+    {
+      "id": "T1",
+      "title": "거듭제곱 연산자 ^",
+      "status": "done",
+      "blockedBy": [],
+      "gates": {
+        "met": 1,
+        "total": 1
+      },
+      "route": "matt-default",
+      "worker": {
+        "model": "opus",
+        "effort": "medium",
+        "worktree": "Workflow 격리 worktree"
+      },
+      "estimateMin": 12,
+      "startedAt": "2026-09-07T00:45:17+09:00",
+      "note": "조정자가 worktree에서 직접 검증 후 --no-ff 머지, 머지 코드에서 재검증까지 통과",
+      "acceptance": [
+        "evaluate(\"2 ^ 3 ^ 2\") == 512.0 (오른쪽부터 묶임)",
+        "evaluate(\"2 ^ 3 * 2\") == 16.0 (곱셈보다 먼저)",
+        "evaluate(\"-2 ^ 2\") == -4.0",
+        "evaluate(\"2 ^ -3\") == 0.125",
+        "evaluate(\"(-8) ^ 0.5\") 는 ValueError — 복소수를 돌려주지 않음",
+        "단항 마이너스 처리가 새 단계로 옮겨지고 옛 분기는 삭제됨",
+        "기존 -3 + 5 / 2 * -3 / -(1 + 2) 테스트 그대로 통과",
+        "docs/adr/0001-* 에 -2 ^ 2 = -4 결정 기록",
+        "README 한 줄 추가 (출력값은 쓰지 않음 — 티켓 03 소관)"
+      ],
+      "gateList": [
+        {
+          "id": "G1",
+          "text": "전체 테스트 통과",
+          "status": "met",
+          "check": "python3 -m unittest discover -s tinycalc/tests -t .",
+          "expect": "OK",
+          "actual": "Ran 12 tests — OK (worktree), 병합 후 17 tests — OK"
+        }
+      ],
+      "actualMin": 2,
+      "files": [
+        "tinycalc/core.py",
+        "tinycalc/tests/test_core.py",
+        "README.md",
+        "docs/adr/0001-unary-minus-binds-looser-than-exponent.md"
+      ],
+      "commits": [
+        "0ce3ff8 Add exponent operator ^"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "값 포맷터 format.py",
+      "status": "done",
+      "blockedBy": [],
+      "gates": {
+        "met": 1,
+        "total": 1
+      },
+      "route": "matt-default",
+      "worker": {
+        "model": "opus",
+        "effort": "medium",
+        "worktree": "Workflow 격리 worktree"
+      },
+      "estimateMin": 10,
+      "startedAt": "2026-09-07T00:45:17+09:00",
+      "note": "조정자가 worktree에서 직접 검증 후 --no-ff 머지, 머지 코드에서 재검증까지 통과",
+      "acceptance": [
+        "fmt(3.0) == \"3\", fmt(3.5) == \"3.5\"",
+        "무한대·NaN은 예외 없이 \"inf\"/\"nan\" (is_integer() 로 판정)",
+        "fmt(1/3, 2) == \"0.33\", fmt(3.0, 2) == \"3.00\", fmt(3.4, 0) == \"3\"",
+        "음수 자릿수는 ValueError",
+        "fmt 가 패키지 루트에서 재수출되고 __all__ 에 포함",
+        "새 tinycalc/tests/test_format.py 가 위 전부를 덮음"
+      ],
+      "gateList": [
+        {
+          "id": "G1",
+          "text": "전체 테스트 통과",
+          "status": "met",
+          "check": "python3 -m unittest discover -s tinycalc/tests -t .",
+          "expect": "OK",
+          "actual": "Ran 11 tests — OK (worktree), 병합 후 17 tests — OK"
+        }
+      ],
+      "actualMin": 2,
+      "files": [
+        "tinycalc/format.py",
+        "tinycalc/tests/test_format.py",
+        "tinycalc/__init__.py"
+      ],
+      "commits": [
+        "e562e44 Add fmt value formatter"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "명령줄 --precision",
+      "status": "done",
+      "blockedBy": [
+        "T2"
+      ],
+      "gates": {
+        "met": 1,
+        "total": 1
+      },
+      "route": "matt-default",
+      "worker": {
+        "model": "opus",
+        "effort": "medium",
+        "worktree": "이 세션 체크아웃 (순차 웨이브)"
+      },
+      "estimateMin": 10,
+      "note": "조정자가 전체 스위트(27개)와 CLI 동작을 직접 확인",
+      "acceptance": [
+        "옵션 유무와 무관하게 항상 포맷터 경유 — 1 + 2 는 3",
+        "--precision 2 와 --precision=2 둘 다 동작",
+        "--precision 0 은 소수점 없이 출력",
+        "잘못된/음수/누락된 자릿수는 stderr + exit 2, 평가는 시도조차 안 함",
+        "평가 실패는 여전히 exit 1, 인자 개수 오류는 exit 2",
+        "\"-3+5\" 처럼 공백 없이 마이너스로 시작하는 수식도 그대로 동작",
+        "argparse 로 갈아타지 않음",
+        "기존 명령줄 테스트를 새 출력에 맞게 수정 (삭제 아님)",
+        "README의 출력값 전부 갱신 + --precision 문서화"
+      ],
+      "gateList": [
+        {
+          "id": "G1",
+          "text": "전체 테스트 통과",
+          "status": "met",
+          "check": "python3 -m unittest discover -s tinycalc/tests -t .",
+          "expect": "OK",
+          "actual": "Ran 27 tests — OK"
+        }
+      ],
+      "startedAt": "2026-09-07T00:46:33+09:00",
+      "actualMin": 1,
+      "files": [
+        "tinycalc/__main__.py",
+        "tinycalc/tests/test_core.py",
+        "README.md"
+      ],
+      "commits": [
+        "23e5157 Add --precision to the CLI and format all output through fmt"
+      ]
+    }
+  ],
+  "plan": {
+    "concurrency": 2,
+    "placement": "local",
+    "note": "실행 계획 게이트에서 사용자가 승인한 안. 조정자 Opus 5 (1M), 델리게이트 matt-deep, 티켓은 전부 matt-default(opus/medium).",
+    "waves": [
+      {
+        "id": "W1",
+        "mode": "parallel",
+        "why": "건드리는 파일이 전혀 겹치지 않는다 — 01은 파서·자기 테스트·README·ADR, 02는 새 모듈·새 테스트·패키지 초기화 파일",
+        "tickets": [
+          "T1",
+          "T2"
+        ]
+      },
+      {
+        "id": "W2",
+        "mode": "sequential",
+        "why": "02의 fmt 가 있어야 시작할 수 있고 티켓이 하나뿐이라 병렬이 의미 없다",
+        "tickets": [
+          "T3"
+        ]
+      }
+    ]
+  },
+  "review": {
+    "status": "done",
+    "skill": "code-review",
+    "note": "실행 계획 게이트에서 승인한 medium + simplify. 지적은 전부 조정자가 직접 재현한 뒤 반영 여부를 판단했습니다.",
+    "passes": [
+      {
+        "id": "r1",
+        "name": "정확성 (/code-review medium)",
+        "status": "done",
+        "findings": 5,
+        "note": "5건 전부 재현·수정. 이 중 2건(거대 지수 트레이스백, 1e30이 31자리로 출력)은 이번 변경이 만든 회귀."
+      },
+      {
+        "id": "r2",
+        "name": "단순화 (/simplify, 4개 각도)",
+        "status": "done",
+        "findings": 11,
+        "note": "정리 성격 6건 반영, 설계 성격 4건은 델리게이트 판정(1건 반영·1건 후속 티켓·2건 현행 유지), 1건은 중복."
+      }
+    ]
+  },
+  "outcome": {
+    "baseRef": "013b2c3",
+    "headRef": "1788766",
+    "branch": "main",
+    "note": "인터뷰·스펙·티켓 산출물과 실제 코드 변경이 함께 들어 있습니다. 결정 그래프 페이지 자체(docs/agents/matt-auto-log/)는 커밋하지 않아 이 표에 없습니다.",
+    "files": [
+      {
+        "path": "tinycalc/core.py",
+        "status": "modified",
+        "kind": "code",
+        "added": 17,
+        "removed": 5,
+        "note": "^ 토큰 추가와 새 거듭제곱 단계. 단항 마이너스가 이 단계로 올라오고 옛 분기는 삭제됐습니다."
+      },
+      {
+        "path": "tinycalc/format.py",
+        "status": "added",
+        "kind": "code",
+        "added": 13,
+        "removed": 0,
+        "note": "값을 사람이 읽는 문자열로 바꾸는 fmt 한 함수."
+      },
+      {
+        "path": "tinycalc/__main__.py",
+        "status": "modified",
+        "kind": "code",
+        "added": 43,
+        "removed": 4,
+        "note": "--precision 파싱, 항상 fmt 경유 출력, 알 수 없는 옵션과 거대 지수의 오류 처리."
+      },
+      {
+        "path": "tinycalc/__init__.py",
+        "status": "modified",
+        "kind": "code",
+        "added": 2,
+        "removed": 1,
+        "note": "fmt 를 패키지 루트에서 재수출."
+      },
+      {
+        "path": "tinycalc/tests/test_core.py",
+        "status": "modified",
+        "kind": "code",
+        "added": 93,
+        "removed": 8,
+        "note": "거듭제곱 동작과 명령줄 동작 테스트. 기존 3.0 기대값을 3 으로 갱신했습니다."
+      },
+      {
+        "path": "tinycalc/tests/test_format.py",
+        "status": "added",
+        "kind": "code",
+        "added": 47,
+        "removed": 0,
+        "note": "fmt 의 정수/소수, 자릿수, 무한대·NaN, 경계값 테스트."
+      },
+      {
+        "path": "README.md",
+        "status": "modified",
+        "kind": "docs",
+        "added": 5,
+        "removed": 1,
+        "note": "^ 연산자와 --precision 사용 예. 출력 예시값도 새 형식으로 고쳤습니다."
+      },
+      {
+        "path": "docs/adr/0001-unary-minus-binds-looser-than-exponent.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 11,
+        "removed": 0,
+        "note": "-2 ^ 2 를 -4 로 정한 이유 기록."
+      },
+      {
+        "path": "CLAUDE.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 11,
+        "removed": 0,
+        "note": "이슈 트래커와 도메인 문서 위치를 가리키는 에이전트 규칙."
+      },
+      {
+        "path": "docs/agents/issue-tracker.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 30,
+        "removed": 0,
+        "note": "로컬 마크다운 트래커 규약."
+      },
+      {
+        "path": "docs/agents/domain.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 51,
+        "removed": 0,
+        "note": "CONTEXT.md·ADR을 어떻게 읽을지에 대한 규약."
+      },
+      {
+        "path": ".scratch/tinycalc-power-format/spec.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 133,
+        "removed": 0,
+        "note": "이번 작업의 스펙."
+      },
+      {
+        "path": ".scratch/tinycalc-power-format/issues/01-exponent-operator.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 30,
+        "removed": 0,
+        "note": "티켓 01."
+      },
+      {
+        "path": ".scratch/tinycalc-power-format/issues/02-value-formatter.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 29,
+        "removed": 0,
+        "note": "티켓 02."
+      },
+      {
+        "path": ".scratch/tinycalc-power-format/issues/03-cli-precision.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 30,
+        "removed": 0,
+        "note": "티켓 03."
+      },
+      {
+        "path": ".scratch/tinycalc-power-format/issues/04-error-boundary.md",
+        "status": "added",
+        "kind": "docs",
+        "added": 41,
+        "removed": 0,
+        "note": "리뷰가 찾았지만 이번 범위 밖이라 남긴 후속 티켓 — 오류 경계."
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"status":"PASS","reviewed_sha":"REVIEWED_SHA","rounds":1,"max_cycles":2,"writer":"claude","cross_model":true,"reviewers":[{"family":"codex","model":"gpt-6.2-sol","effort":"medium"}],"open":[],"minor":["f-2"],"reasons":["no open blocker or major"],"counts":{"blocker":0,"major":1,"minor":1},"agreed":true}

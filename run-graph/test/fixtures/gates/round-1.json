@@ -1,0 +1,3 @@
+{"round":1,"reviewers":[{"family":"codex","model":"gpt-6.2-sol","effort":"medium"}],
+ "findings":[{"id":"f-1","file":"src/a.ts","line":3,"axis":"correctness","severity":"major","claim":"off by one","evidence":"loop","agreed_by":["codex"]},
+             {"id":"f-2","file":"src/b.ts","line":null,"axis":"standards","severity":"minor","claim":"naming","evidence":"x","agreed_by":["codex"]}]}

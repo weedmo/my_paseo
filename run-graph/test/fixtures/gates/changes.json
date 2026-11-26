@@ -1,0 +1,1 @@
+{"title":"Parser cache","summary":"Adds a token cache","points":[{"title":"cache","file":"src/a.ts","as_is":null,"to_be":{"start":1,"end":9},"what":"adds cache","why":"speed"}],"diagrams":{"as_is":"flowchart LR\n A-->B","to_be":"flowchart LR\n A-->C"}}

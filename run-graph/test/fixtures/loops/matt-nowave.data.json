@@ -1,0 +1,74 @@
+{
+ "title": "No-wave run",
+ "slug": "nowave",
+ "generated": "2026-11-26",
+ "summary": "s",
+ "progress": {
+  "state": "running",
+  "updated": "2026-11-26T10:30:00+09:00",
+  "startedAt": "2026-11-26T10:00:00+09:00",
+  "current": "T2 running"
+ },
+ "stages": [
+  {
+   "id": "design",
+   "name": "Design",
+   "status": "done",
+   "note": "spec docs/design/nowave.md",
+   "decisions": [
+    {
+     "id": "D1",
+     "question": "Q?",
+     "decision": "A"
+    }
+   ]
+  }
+ ],
+ "tickets": [
+  {
+   "id": "T1",
+   "title": "base",
+   "status": "done",
+   "blockedBy": [],
+   "startedAt": "2026-11-26T10:00:00+09:00",
+   "actualMin": 10,
+   "worker": {
+    "model": "opus",
+    "effort": "medium",
+    "worktree": "WT1"
+   },
+   "note": "ran as wf_cccccccc-003"
+  },
+  {
+   "id": "T2",
+   "title": "middle",
+   "status": "in-progress",
+   "blockedBy": [
+    "T1"
+   ],
+   "startedAt": "2026-11-26T10:12:00+09:00",
+   "estimateMin": 10,
+   "worker": {
+    "worktree": "WT2"
+   }
+  },
+  {
+   "id": "T3",
+   "title": "top",
+   "status": "pending",
+   "blockedBy": [
+    "T1",
+    "T2"
+   ],
+   "worker": {
+    "worktree": "Workflow worktree (free text)"
+   }
+  },
+  {
+   "id": "T4",
+   "title": "side",
+   "status": "pending",
+   "blockedBy": []
+  }
+ ]
+}

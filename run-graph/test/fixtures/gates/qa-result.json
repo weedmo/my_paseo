@@ -1,0 +1,1 @@
+{"surface":"cli","ran_at":"2026-11-26T10:40:00Z","status":"FAIL","line":"1/2 scenarios passed","scenarios":[{"id":"S1","acceptance":"prints help","exit":0,"duration_ms":1200,"output":"ok"},{"id":"S2","acceptance":"rejects bad input","exit":1,"duration_ms":800,"output":"Error: <script>alert(1)</script>"}],"judged":[{"id":"J1","acceptance":"looks right"}]}
