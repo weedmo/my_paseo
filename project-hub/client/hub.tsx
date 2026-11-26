@@ -18,6 +18,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { resolveGithubRepos } from "../shared/github";
 import { ProjectSettingsModal } from "./project-settings";
+import { StatusGlyph } from "./status-glyph";
 import { useSidebarShortcuts } from "./web";
 import { sidebarPreferences } from "../shared/preferences";
 import {
@@ -515,7 +516,7 @@ function WorkspaceRow(props: Shared & { workspaceRef: WorkspaceRef; indent: numb
       {(hovered) => (
         <>
           <View style={styles.statusSlot}>
-            <StatusGlyph indicator={row.indicator} theme={theme} styles={styles} />
+            <StatusGlyph indicator={row.indicator} theme={theme} />
           </View>
           <Text style={[styles.workspaceTitle, (hovered || selected) && styles.workspaceTitleStrong]} numberOfLines={1}>
             {row.title}
@@ -534,21 +535,6 @@ function WorkspaceRow(props: Shared & { workspaceRef: WorkspaceRef; indent: numb
       )}
     </HoverRow>
   );
-}
-
-function StatusGlyph({ indicator, theme, styles }: { indicator: PluginWorkspaceSnapshot["indicator"]; theme: Theme; styles: Styles }) {
-  const c = theme.colors;
-  switch (indicator) {
-    case "running":
-      return <View style={[styles.dot, { backgroundColor: c.accent }]} />;
-    case "needs_input":
-    case "attention":
-      return <View style={[styles.dot, { backgroundColor: c.statusWarning }]} />;
-    case "failed":
-      return <View style={[styles.dot, { backgroundColor: c.statusDanger }]} />;
-    default:
-      return <View style={[styles.dot, styles.dotIdle]} />;
-  }
 }
 
 type Styles = ReturnType<typeof makeStyles>;
@@ -601,8 +587,6 @@ function makeStyles(theme: Theme, compact: boolean) {
     meta: { color: c.foregroundMuted, fontSize: 12, flexShrink: 0 },
     notice: { color: c.statusWarning, fontSize: 12, paddingHorizontal: 8, paddingVertical: 4 },
     statusSlot: { width: STATUS_SLOT, height: 16, alignItems: "center" as const, justifyContent: "center" as const },
-    dot: { width: 7, height: 7, borderRadius: 999 },
-    dotIdle: { borderWidth: 1, borderColor: c.foregroundMuted, opacity: 0.6 },
     workspaceTitle: { color: c.foreground, fontSize: 14, lineHeight: 20, opacity: 0.76, flex: 1, minWidth: 0 },
     workspaceTitleStrong: { opacity: 1 },
     iconButton: { width: 24, height: 24, borderRadius: 6, alignItems: "center" as const, justifyContent: "center" as const },
