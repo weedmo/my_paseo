@@ -1,0 +1,104 @@
+diff --git a/client/tasks/board/board-screen.tsx b/client/tasks/board/board-screen.tsx
+index eaebcabe..63342ba1 100644
+--- a/client/tasks/board/board-screen.tsx
++++ b/client/tasks/board/board-screen.tsx
+@@ -8,6 +8,7 @@ import { useTasksLanguage } from "../i18n";
+ import { pluginRoot } from "../../components/focus-ring";
+ import { HAIRLINE } from "./board-style";
+ import { SearchCoverageProvider } from "./search-loading";
++import { RemoteTasks } from "./remote-tasks";
+ import { DesktopBoard } from "./desktop-board";
+ import { MenuBoundsContext } from "./menu";
+ import { carriedSettings } from "./carry";
+@@ -88,6 +89,7 @@ function BoardContent(props: PluginScreenProps) {
+   return (
+     <TasksTypography theme={props.theme}>
+       <View {...pluginRoot} style={{ flex: 1, backgroundColor: props.theme.colors.surface0 }}>
++        <RemoteTasks screen={props} />
+         <SearchCoverageProvider cancelled={board.searchCancelled} setCancelled={board.setSearchCancelled} cancelText={board.strings.cancelSearch} resumeText={board.strings.resumeSearch} stoppedText={board.strings.searchStopped} status={board.searchStatus} historyLoading={board.searchHistoryLoading} historyError={board.tasks.historyError} retryHistory={board.tasks.clearHistoryError} historyLoadingText={board.strings.historyLoading} historyFailedText={board.strings.historyFailed} query={board.params.query} strings={board.fullConversationSearch ? board.strings.conversationSearchCoverage : board.strings.searchCoverage} fullConversation={board.fullConversationSearch} onFullConversationChange={board.setFullConversationSearch} fullConversationLabel={board.strings.fullConversationSearch} fullConversationShortLabel={board.strings.fullConversationShort} fullConversationHint={board.strings.fullConversationHint(board.fullConversationSearch)}>
+           <MenuBoundsContext.Provider value={rootRef}>
+             {layout}
+diff --git a/client/tasks/board/sidebar-entry.tsx b/client/tasks/board/sidebar-entry.tsx
+index 377d0a10..68f1e416 100644
+--- a/client/tasks/board/sidebar-entry.tsx
++++ b/client/tasks/board/sidebar-entry.tsx
+@@ -20,6 +20,7 @@ import { encodeBoardParams, lastBoardParams, rememberBoardParams, rememberBoardR
+ import { useBoardIntent } from "./prefetch";
+ import { BOARD_STRINGS } from "./strings";
+ import { loadMark } from "../../debug/load-marks";
++import { useRemoteTasks } from "./remote-tasks";
+ import { HiddenCount } from "./hidden-count";
+ import { clearedParams } from "./filter-options";
+ import { createQuestionDialogStore } from "../actions/question-dialog";
+@@ -131,7 +132,13 @@ function CountedTasksRow(props: PluginSidebarItemProps & { label: string; mode:
+     });
+   if (counts.ready) loadMark("counts.ready");
+   const language = useTasksLanguage();
+-  const parts = sidebarCountParts(counts, counts.ready ? props.mode : "none");
++  const { groups } = useRemoteTasks(props.host.id);
++  const remoteCount = (lane: string) => groups.find(group => group.key === lane)?.items.length ?? 0;
++  const parts = sidebarCountParts({
++    running: counts.running + remoteCount("running"),
++    needsInput: counts.needsInput + remoteCount("needsInput"),
++    review: counts.review + remoteCount("review"),
++  }, counts.ready ? props.mode : "none");
+   const hidden = counts.ready ? (counts.hidden ?? []).filter((card) => props.mode === "all" || card.lane === "needs_input") : [];
+   const countsAnchor = useRef<View>(null);
+   const hint = [
+diff --git a/client/tasks/board/remote-tasks.tsx b/client/tasks/board/remote-tasks.tsx
+new file mode 100644
+index 00000000..0406be62
+--- /dev/null
++++ b/client/tasks/board/remote-tasks.tsx
+@@ -0,0 +1,51 @@
++import React, { useMemo } from "react";
++import { Pressable, ScrollView, Text, View } from "react-native";
++import { useAgent, useAgents, useHosts, type PluginScreenProps } from "@getpaseo/plugin/client";
++import type { AgentRef, PluginAgentSnapshot } from "@getpaseo/plugin";
++import { useTasksLanguage } from "../i18n";
++
++function lane(agent: PluginAgentSnapshot) {
++  if (agent.attentionReason === "permission") return "needsInput";
++  if (agent.status === "error" || agent.attentionReason === "error") return "review";
++  if (agent.status === "running" || agent.status === "initializing") return "running";
++  return agent.requiresAttention ? "review" : "done";
++}
++
++export function useRemoteTasks(hostId: string) {
++  const hosts = useHosts();
++  const query = useMemo(() => ({
++    hosts: hosts.filter(host => host.serverId !== hostId && host.status === "online").map(host => host.serverId),
++    where: (agent: PluginAgentSnapshot) => agent.hostId !== hostId && !agent.background && lane(agent) !== "done",
++    groupBy: lane,
++  }), [hosts, hostId]);
++  return { groups: useAgents(query), hosts };
++}
++
++function RemoteRow({ agent, host, screen }: { agent: AgentRef; host: string; screen: PluginScreenProps }) {
++  const title = useAgent(agent, item => item.title);
++  return <Pressable accessibilityRole="button" disabled={!screen.navigation}
++    onPress={() => screen.navigation?.openAgent({ serverId: agent.hostId, agentId: agent.id })}
++    style={{ paddingVertical: 5 }}>
++    <Text style={{ color: screen.theme.colors.foreground }}>{host} · {title || agent.id}</Text>
++  </Pressable>;
++}
++
++export function RemoteTasks({ screen }: { screen: PluginScreenProps }) {
++  const { groups, hosts } = useRemoteTasks(screen.host.id);
++  const zh = useTasksLanguage() === "zh";
++  const labels: Record<string, string> = zh
++    ? { running: "运行中", needsInput: "待输入", review: "待查看" }
++    : { running: "Running", needsInput: "Needs input", review: "Review" };
++  if (!groups.length) return null;
++  return <View style={{ maxHeight: "30%", paddingHorizontal: 12, paddingVertical: 5 }}>
++    <ScrollView nestedScrollEnabled>
++      {groups.map(group => <View key={group.key}>
++        <Text style={{ color: screen.theme.colors.foreground, fontWeight: "600" }}>
++          {zh ? "远程" : "Remote"} · {labels[group.key]} ({group.items.length})
++        </Text>
++        {group.items.map(agent => <RemoteRow key={agent.key} agent={agent} screen={screen}
++          host={hosts.find(host => host.serverId === agent.hostId)?.label || agent.hostId} />)}
++      </View>)}
++    </ScrollView>
++  </View>;
++}
